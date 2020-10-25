@@ -1,0 +1,265 @@
+---
+title: "Assignment_1"
+author: "Peilin Long"
+output:
+  word_document: default
+  pdf_document: default
+---
+github:<https://github.com/lllucy-lpl/IDA_assignment1>
+
+## Question 1
+(a)
+The answer is (ii) $0.3$
+As ALQ is MCAR then probability of missing data of ALQ is unrelated to our observed data and also the missing value itself, therefore, $Pr(ALQ is missing|ALQ)=Pre(ALQ is missing)$,the distribution of ALQ = NO is similar to distribution of ALQ = YES, so is the same as $0.3$.
+
+(b)
+The answer is (ii)The probability of ALQ being missing is independent of the Yes/No value of ALQ after adjusting for gender.
+MAR means missing value is related to observed data but unrelated to missing data itself. So here missing value of ALQ is independent to its own value Yes/No, but is depended on given data gender.
+
+(c)
+The answer is (ii)It is impossibile to conclude from the information given.
+As ALQ is MAR given gender, the probability of ALQ is missing depends on gender, even though we konw the probability of ALQ missing for men is 0.1, we could not make further inference on the exact probability of ALQ missing for women.
+
+
+
+## Question2
+The largest subsample of this dataset would be 90 under complete case analysis:
+The data for any individual that has one or more is missing will be discarded, and when the 10% of missing valu in each variable is in the same row, so that the left 90 rows would remain in the dataset.
+The smallest subsample of this dataset would be 0 under complete case analysis:
+If the 10 missing values of each individuals lies in different rows and there is no overlap among the missing values position, in this case every individual contains a missing value so that all the data should be discarded, therefore, the subsample size turns to be 0.
+
+
+
+## Question 3
+###(a)
+```{r}
+# simulating a complete dataset of size = 500
+set.seed(111)
+n = 500
+z1 = rnorm(n)
+z2 = rnorm(n)
+z3 = rnorm(n)
+y1 = 1 + z1
+y2 = 5 + 2 * z1 + z2
+df = data.frame(
+  Y1 = y1,
+  Y2 = y2
+)
+df[1:10,]
+```
+
+Consider y2 is missing if $a*(y1 - 1) + b*(y2 - 5) + z3 < 0$
+For a = 2 and b = 0
+y2 is missing when $2*(y1 -1) + z3 < 0$
+The missing value is related to the observed value y1 but do not depend on missing value itself
+Therefore it is a MAR mechanism
+```{r}
+set.seed(111)
+Y2_MAR_obs = df$Y2[2*(y1-1)+z3>=0]
+mean(Y2_MAR_obs)
+sd(Y2_MAR_obs)
+
+#Plot the densities of complete dataset and observed dataset
+
+plot(density(df$Y2), lwd = 2, col = "green", xlab = "Y2", main = "MAR", ylim = c(0,0.25))
+lines(density(Y2_MAR_obs), lwd = 2, col = "blue")
+legend(20, 0.25, c("Complete data","Observed data"), col = c("green","blue"), lty = c(1,1), lwd = c(2,2), bty = "n") 
+```
+From the plot we can see that the distributions of observed data and complete data are quite different under data generated according to MAR.
+
+###(b)
+For stochastic regression we will add a noise value to the predictions obtained using the regression imputation method.
+```{r}
+set.seed(111)
+ind = which(2*(y1-1)+z3<0)
+y2_b = y2
+y2_b[ind] = NA
+df_1 = data.frame(
+  Y1 = y1,
+  Y2 = y2_b
+)
+fity = lm(Y2 ~ Y1, data = df_1)
+summary(fity)
+```
+```{r}
+set.seed(111)
+predy2_b = predict(fity,newdata = df_1) + rnorm(n,0,sigma(fity))
+y2sri_b = ifelse(is.na(df_1$Y2),predy2_b,df_1$Y2)
+plot(density(df$Y2), lwd = 2, col = "green", xlab = "Y2", main = "MAR", ylim = c(0,0.25))
+lines(density(y2sri_b), lwd = 2, col = "blue")
+legend(20, 0.25, legend = c("Complete data","Observed data"), col = c("green","blue"), lty = c(1,1), lwd = c(2,2), bty = "n") 
+```
+From the plot we can see that the distribution of oberved data after imputation is quite similar to the distribution of originally completed data. So it is make sense to use stochastic regression to deal with missing values under MAR mechanism.
+
+###(c)
+With a = 0 and b = 2
+Y2 will be missing if $2*(y2-5)+z3 < 0$
+It is a MNAR mechanism as the missing values of Y2 are due to the value of y2, in another word, the missing value in Y2 depends on the missing values themselves.
+```{r}
+set.seed(111)
+Y2_MANR_obs = df$Y2[2*(y2-5)+z3>=0]
+mean(Y2_MANR_obs)
+sd(Y2_MANR_obs)
+
+#Plot the densities of complete dataset and observed dataset
+
+plot(density(df$Y2), lwd = 2, col = "green", xlab = "Y2", main = "MNAR", ylim = c(0,0.35))
+lines(density(Y2_MANR_obs), lwd = 2, col = "blue")
+legend(20, 0.35, legend = c("Complete data","Observed data"), col = c("green","blue"), lty = c(1,1), lwd = c(2,2), bty = "n") 
+```
+From the plot we can see that the distributions of observed data and complete data are more different under data generated according to MANR than that according to MAR.
+
+###(d)
+```{r}
+set.seed(111)
+ind = which(2*(y2-5)+z3<0)
+y2_d = y2
+y2_d[ind] = NA
+df_2 = data.frame(
+  Y1 = y1,
+  Y2 = y2_d
+)
+fity = lm(Y2 ~ Y1, data = df_2)
+summary(fity)
+```
+```{r}
+set.seed(111)
+predy2_d = predict(fity,newdata = df_2) + rnorm(n,0,sigma(fity))
+y2sri_d = ifelse(is.na(df_2$Y2),predy2_d,df_2$Y2)
+plot(density(df$Y2), lwd = 2, col = "green", xlab = "Y2", main = "MNAR", ylim = c(0,0.25))
+lines(density(y2sri_d), lwd = 2, col = "blue")
+legend(20, 0.25, legend = c("Complete data","Observed data"), col = c("green","blue"), lty = c(1,1), lwd = c(2,2), bty = "n") 
+```
+From the plot we can see that the distribution of oberved data after imputation is more close to the distribution of originally completed data, even though not similar to. So it is make sense to use stochastic regression to deal with missing values under MANR mechanism.
+
+
+
+## Question 4
+###(a)
+Using complete case analysis, we get the mean and standard error of recovery time is 19.27273, 2.603013.
+```{r}
+load("databp.Rdata")
+ind = which(is.na(databp$recovtime) == FALSE) #indices of subjects of observed recovtime
+mean_cca_recovtime = mean(databp$recovtime, na.rm = TRUE)
+se_cca_recovtime = sd(databp$recovtime, na.rm = TRUE)/sqrt(length(ind))
+mean_cca_recovtime
+se_cca_recovtime
+```
+Further, asked by question we obtain the correlations between recovery time and the dose is 0.2391256, and the correlations between recovery time and blood pressure is -0.01952862.
+```{r}
+cor(databp$recovtime,databp$logdose,use = "complete")
+cor(databp$recovtime,databp$bloodp,use = "complete")
+```
+
+###(b)
+Under mean imputation the mean of recovery time does not change which is 19.27273, but the standard error would decrease to 2.284135.
+```{r}
+recovtime_mi = ifelse(is.na(databp$recovtime),mean_cca_recovtime,databp$recovtime)
+n = length(recovtime_mi)
+mean_mi_recovtime = mean(recovtime_mi)
+se_mi_recovtime = sd(recovtime_mi)/sqrt(n)
+mean_mi_recovtime
+se_mi_recovtime 
+```
+The correlation between recovery time and dose is 0.21506121, and the correlation between recovery time and blood pressure is -0.01934126.The correlations drops when doing mean imputation than complete data analysis.
+```{r}
+cor(recovtime_mi,databp$logdose)
+cor(recovtime_mi,databp$bloodp)
+```
+
+###(c)
+To do mean regression imputation, first we fit a regression model on the complete cases, using the recovery time as the response variable and using dose and blood pressure as the covariates:
+\[
+\text{recovtime}_i=\beta_0+\beta_1\text{logdose}_i+\beta_2\text{blooodp}_i+\varepsilon_{i},\qquad \varepsilon_{i}\overset{\text{iid}}\sim\text{N}(0,\sigma^2),\qquad i=1,\ldots,22
+\]
+```{r}
+set.seed(666)
+fit = lm(recovtime ~ logdose + bloodp, data = databp)
+summary(fit)
+```
+From the summary report of fit, we obtain $\widehat{\beta}_0=15.2159$ and $\widehat{\beta}_1=11.4290$ and $\widehat{\beta}_2=-0.2769$.
+Then we compute the predictions using function \texttt{predict}.
+Then we can get the mean of recovery time at 19.44428 and associated standard error at 2.312845 using regression imputaion case.
+```{r}
+set.seed(666)
+predicted_recovtime = predict(fit,newdata = databp)
+recovtime_ri = ifelse(is.na(databp$recovtime), predicted_recovtime, databp$recovtime)
+mean_recovtime_ri = mean(recovtime_ri)
+se_recovtime_ri = sd(recovtime_ri)/sqrt(length(recovtime_ri))
+mean_recovtime_ri
+se_recovtime_ri 
+```
+And the correlation between recovery time and dose is 0.2801835, correlation between recovery time and blood pressure is -0.0111364.
+```{r}
+cor(recovtime_ri,databp$logdose)
+cor(recovtime_ri,databp$bloodp)
+```
+
+###(d)
+For stochastic regression imputation, we add noise to the prediction obtainted using the regression imputation method,
+The mean of recovery time at 19.83789 and associated standard error at 2.440745 using stochastic regression imputaion case.
+```{r}
+set.seed(666)
+predicted_recovtime_sri = predict(fit, newdata = databp) + rnorm(nrow(databp), 0, sigma(fit))
+recovtime_sri = ifelse(is.na(databp$recovtime), predicted_recovtime_sri,databp$recovtime)
+mean_recovtime_sri = mean(recovtime_sri)
+se_recovtime_sri = sd(recovtime_sri)/sqrt(length(recovtime_sri))
+mean_recovtime_sri
+se_recovtime_sri 
+```
+And we obtain the correlation between recovery time and dose is 0.08690395, also the correlation between recovery time and blood pressure is -0.01827952.
+```{r}
+cor(recovtime_sri,databp$logdose)
+cor(recovtime_sri,databp$bloodp)
+```
+As for stochastic regression imputation here we need to check the the assumption of linearity and of constant variance, also we need to check the assumption of normality of the noise value.
+
+###(e)
+```{r}
+indrecovtime4 = which(is.na(databp$recovtime) == FALSE & databp$logdose >1.4 & databp$logdose <1.6 & databp$bloodp >50 &databp$bloodp <70)
+indrecovtime4
+```
+
+```{r}
+donor4 = indrecovtime4 #in this case only one individual with similar value 
+donor4
+```
+
+```{r}
+indrecovtime10 = which(is.na(databp$recovtime) == FALSE & databp$logdose >2.2 & databp$logdose <2.5 & databp$bloodp >60 &databp$bloodp <80)
+indrecovtime10
+```
+
+```{r}
+donor10 = sample(indrecovtime10,1,replace = TRUE)
+donor10
+```
+
+
+```{r}
+indrecovtime22 = which(is.na(databp$recovtime) == FALSE & databp$logdose >2.5 & databp$bloodp >60 )
+indrecovtime22  
+```
+
+```{r}
+donor22 = sample(indrecovtime22,1,replace = TRUE)
+donor22
+```
+We consequently create a new recovery time variable with imputed values(the predicted recovery time from regression model) from the hot dec procedure.
+Here we get the mean of recovery time is 19.54081, and associated standard error is 2.30679.
+```{r}
+set.seed(666)
+recovhd = c(databp$recovtime[is.na(databp$recovtime) == FALSE], predicted_recovtime[donor4], predicted_recovtime[donor10], predicted_recovtime[donor22])
+mhd = mean(recovhd)
+sehd = sd(recovhd)/sqrt(length(recovhd))
+mhd;sehd
+```
+And we obtain the correlation between recovery time and dose is -0.2509738, also the correlation between recovery time and blood pressure is -0.2794184.
+```{r}
+cor(recovhd,databp$logdose)
+cor(recovhd,databp$bloodp)
+```
+
+###(f)
+The predictive mean imputation generally does not attenuate the variability of the imputed data as stochastic regression imputation.
+However, predictive mean imputation can produce substantially biased estimates of correlations, which we can see in answer(d); Besides, it also underestimates standard errors.
